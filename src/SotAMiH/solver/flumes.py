@@ -3,12 +3,14 @@ from .solvers import Solver, HLLSolver
 from .timestepers import calculate_timestep, first_order_time_marching
 
 import matplotlib.pyplot as plt
-import time as t
+import numpy as np
+import csv
 
 from typing import Callable
+from pathlib import Path
 
 class Flume:
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver) -> None:
+    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, time_recorders: list[float | int] | None = None, max_time: int | float = np.inf) -> None:
         self.n_cells = int(length / resolution) + 2
 
         self.length = length
@@ -22,6 +24,10 @@ class Flume:
         self.interfaces: list[Interface] = []
 
         self.solver = solver
+        self.time_recorders = time_recorders
+        self.recorded_times = []
+
+        self.max_time = max_time
 
     def _calculate_source_vector(self, cell: Cell, l_cell: Cell, r_cell: Cell):
         g = self.g
@@ -69,148 +75,9 @@ class Flume:
     def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 100, convergance_definition: float = 10E-9):
         raise NotImplementedError
 
-class EmptyFlume(Flume):
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver) -> None:
-        super().__init__(length, width, resolution, mannings_n, solver)
-
-        for i in range(self.n_cells):
-            self.cells.append(Cell(0))
-            if i < self.n_cells-1:
-                self.interfaces.append(Interface())
-
-    def _set_boundary_conditions(self, q: float):
-        self.cells[0].Q_vector[0] = self.cells[0].Q_vector[1]
-        self.cells[0].Q_vector[1] = q
-
-        self.cells[-1].Q_vector[0] = self.cells[-2].Q_vector[0]
-        self.cells[-1].Q_vector[1] = self.cells[-2].Q_vector[1]
-
-    def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):
-        unit_flow = flow / self.width
-        
-        time = 0
-        max_h_change = 10E100
-        old_profile = self._get_depth_profile()
-
-        if live_view:
-            plt.ion()
-            fig, ax = plt.subplots()
-
-            line, = ax.plot([], [], 'b-') 
-            ax.set_xlabel('Cell Index')
-            ax.set_ylabel('Depth Profile (m)')
-            ax.set_title(f'Empty Flume Flow. Set Flow: {flow*1000} l/s')
-            time_text = ax.text(0.05, 0.95, '', transform=ax.transAxes, fontsize=12, verticalalignment='top')
-            ax.set_ylim(0, 0.8)
-            line.set_xdata(list(range(len(old_profile))))
-
-        iterations = 0
-        while (iterations < min_iterations) or ((iterations < max_iterations) and (max_h_change > convergance_definition)):
-            timestep = calculate_timestep(self.cells, self.resolution)
-            self._set_boundary_conditions(unit_flow)
-
-            for i in range(len(self.interfaces)):
-                interface = self.interfaces[i]
-                l_cell = self.cells[i]
-                r_cell = self.cells[i+1]
-                interface.F_vector = self.solver.calculate_flux(l_cell, r_cell)
-
-            for i in range(1, len(self.cells)-1):
-                cell = self.cells[i]
-                l_cell = self.cells[i-1]
-                r_cell = self.cells[i+1]
-                
-                S_vector = self._calculate_source_vector(cell, l_cell, r_cell)
-                F_left = self.interfaces[i-1].F_vector
-                F_right = self.interfaces[i].F_vector
-
-                cell.Q_vector = first_order_time_marching(F_left, cell.Q_vector, F_right, S_vector, timestep, self.resolution)
-
-            new_profile = self._get_depth_profile()
-            max_h_change = max(abs(new - old) for new, old in zip(new_profile, old_profile))
-            old_profile = new_profile
-
-            if live_view :
-                line.set_ydata(new_profile)
-                
-                ax.relim()
-                ax.autoscale_view(scaley=False)
-                
-                fig.canvas.draw()
-                fig.canvas.flush_events()
-
-                time_text.set_text(f"t = {time:.2f}")
-
-            time += timestep
-            iterations += 1
-
-        return self._get_depth_profile()
-
-class WeirFlume(Flume):
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, weir_psoition: float) -> None:
-        if weir_psoition >= length - resolution:
-            raise ValueError("The weir is out of bounds!")
-        
-        super().__init__(length, width, resolution, mannings_n, solver)
-
-    def _set_boundary_conditions(self, q: float):
-        self.cells[0].Q_vector[0] = self.cells[0].Q_vector[1]
-        self.cells[0].Q_vector[1] = q
-
-        self.cells[-1].Q_vector[0] = self.cells[-2].Q_vector[0]
-        self.cells[-1].Q_vector[1] = self.cells[-2].Q_vector[1]
-
-    def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):
-        unit_flow = flow / self.width
-        
-        time = 0
-        max_h_change = 10E100
-        old_profile = self._get_depth_profile()
-
-        iterations = 0
-        while (iterations < min_iterations) or ((iterations < max_iterations) and (max_h_change > convergance_definition)):
-            print(iterations)
-            
-            timestep = calculate_timestep(self.cells, self.resolution)
-            self._set_boundary_conditions(unit_flow)
-
-            for i in range(len(self.interfaces)):
-                interface = self.interfaces[i]
-                l_cell = self.cells[i]
-                r_cell = self.cells[i+1]
-                interface.F_vector = self.solver.calculate_flux(l_cell, r_cell)
-
-            for i in range(1, len(self.cells)-1):
-                cell = self.cells[i]
-                l_cell = self.cells[i-1]
-                r_cell = self.cells[i+1]
-                
-                S_vector = self._calculate_source_vector(cell, l_cell, r_cell)
-                F_left = self.interfaces[i-1].F_vector
-                F_right = self.interfaces[i].F_vector
-
-                cell.Q_vector = first_order_time_marching(F_left, cell.Q_vector, F_right, S_vector, timestep, self.resolution)
-
-            new_profile = self._get_depth_profile()
-            max_h_change = max(abs(new - old) for new, old in zip(new_profile, old_profile))
-            old_profile = new_profile
-
-            time += timestep
-            iterations += 1
-
-        return self._get_depth_profile()
-
-class SluiceFlume(Flume):
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver) -> None:
-        super().__init__(length, width, resolution, mannings_n, solver)
-
-class LeakyBarrierFlume(Flume):
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver) -> None:
-        super().__init__(length, width, resolution, mannings_n, solver)
-
-class VariableBedlume(Flume):
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, bed_function: Callable) -> None:
-        super().__init__(length, width, resolution, mannings_n, solver)
+class VariableBedFlume(Flume):
+    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, bed_function: Callable, time_recorders: list[float | int] | None = None, max_time: int | float = np.inf) -> None:
+        super().__init__(length, width, resolution, mannings_n, solver, time_recorders, max_time)
 
         self.z_profile = []
 
@@ -230,9 +97,6 @@ class VariableBedlume(Flume):
 
         self.cells[-1].Q_vector[0] = self.cells[-2].Q_vector[0]
         self.cells[-1].Q_vector[1] = -self.cells[-2].Q_vector[1]
-
-    def _cell_update(self, cell):
-        pass
 
     def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):
         unit_flow = flow / self.width
@@ -263,9 +127,24 @@ class VariableBedlume(Flume):
             line_bed.set_data(x_data, self.z_profile)
             line_water.set_xdata(x_data)
 
+        if self.time_recorders:
+            times_to_capture = self.time_recorders.copy()
+        record_step = False
+
         iterations = 0
-        while (iterations < min_iterations) or ((iterations < max_iterations) and (max_h_change > convergance_definition)):
+        while (time <= self.max_time) and ((iterations < min_iterations) or ((iterations < max_iterations) and (max_h_change > convergance_definition))):
             timestep = calculate_timestep(self.cells, self.resolution)
+
+            if time + timestep > self.max_time:
+                timestep = self.max_time - time
+
+            if (times_to_capture) and (time + timestep >= times_to_capture[0]):
+                timestep = times_to_capture[0] - time
+                record_step = True
+                times_to_capture.pop(0)
+            else:
+                record_step = False
+            
             self._set_boundary_conditions(unit_flow)
 
             for i in range(len(self.interfaces)):
@@ -289,6 +168,8 @@ class VariableBedlume(Flume):
             max_h_change = max(abs(new - old) for new, old in zip(new_profile, old_profile))
             old_profile = new_profile
 
+            time += timestep
+
             if live_view :
                 water_surface = [h + z for h, z in zip(new_profile, self.z_profile)]
                 line_water.set_ydata(water_surface)
@@ -301,11 +182,37 @@ class VariableBedlume(Flume):
 
                 time_text.set_text(f"t = {time:.2f}")
 
-            time += timestep
+            velocity_profile = self._get_velocity_profile()
+
+            if record_step:
+                self.recorded_times.append((new_profile, velocity_profile))
+
             iterations += 1
 
-            if time == 5000:
-                print("Depth Profile:", new_profile)
-                print("Velocity Profile:", self._get_velocity_profile())
-
-        return self._get_depth_profile()
+        if live_view:
+            plt.ioff()
+            plt.show()
+    
+    def write_results(self, path: Path):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            
+            x_coords = [i * self.resolution + (self.resolution / 2) for i in range(len(self.z_profile))]
+            
+            with open(path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                
+                writer.writerow(['# Flume Configuration'])
+                writer.writerow([
+                    f'# Length: {self.length}', 
+                    f'Width: {self.width}', 
+                    f'Resolution: {self.resolution}', 
+                    f'Mannings_n: {self.mannings_n}'
+                ])
+                
+                writer.writerow(['Time', 'Distance_x', 'Bed_z', 'Depth_h', 'Velocity_u'])
+                
+                if self.time_recorders:
+                    for i, (depths, velocities) in enumerate(self.recorded_times):
+                        t = self.time_recorders[i]
+                        for x, z, h, u in zip(x_coords, self.z_profile, depths, velocities):
+                            writer.writerow([t, x, z, h, u])
