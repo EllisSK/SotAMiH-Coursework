@@ -1,3 +1,4 @@
+import concurrent.futures
 from .elements import Interface, Cell, Vector2D
 
 class Solver:
@@ -66,7 +67,3 @@ class HLLSolver(Solver):
             )
 
         return hll_flux
-
-class HLLCSolver(Solver):
-    def __init__(self) -> None:
-        super().__init__()

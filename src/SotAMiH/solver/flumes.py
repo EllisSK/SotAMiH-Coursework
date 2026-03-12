@@ -3,6 +3,7 @@ from .solvers import Solver, HLLSolver
 from .timestepers import calculate_timestep, first_order_time_marching
 
 import matplotlib.pyplot as plt
+import time as t
 
 from typing import Callable
 
@@ -50,6 +51,19 @@ class Flume:
         for i in range(n_cells):
             if (i != 0) and (i != n_cells-1):
                 profile.append(self.cells[i].Q_vector[0])
+        return profile
+    
+    def _get_velocity_profile(self):
+        n_cells = len(self.cells)
+        profile = []
+        for i in range(n_cells):
+            if (i != 0) and (i != n_cells-1):
+                h = self.cells[i].Q_vector[0]
+                if h != 0:
+                    u = self.cells[i].Q_vector[1] / h
+                else:
+                    u = 0
+                profile.append(u)
         return profile
 
     def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 100, convergance_definition: float = 10E-9):
@@ -201,22 +215,24 @@ class VariableBedlume(Flume):
         self.z_profile = []
 
         for i in range(1, self.n_cells-1):
-            z = bed_function(((i-1) * resolution) + (resolution / 2))
+            z = bed_function(((i-1) * resolution) + (resolution / 2), length)
             self.z_profile.append(z)
 
         for i in range(self.n_cells):
-            z = bed_function(((i-1) * resolution) + (resolution / 2))
+            z = bed_function(((i-1) * resolution) + (resolution / 2), length)
             self.cells.append(Cell(z))
             if i < self.n_cells-1:
                 self.interfaces.append(Interface())
 
     def _set_boundary_conditions(self, q: float):
-        self.cells[0].Q_vector[0] = self.cells[0].Q_vector[1]
-        self.cells[0].Q_vector[1] = q
+        self.cells[0].Q_vector[0] = self.cells[1].Q_vector[0]
+        self.cells[0].Q_vector[1] = -self.cells[1].Q_vector[1]
 
-        #Try measured depth as ds boundary condition
         self.cells[-1].Q_vector[0] = self.cells[-2].Q_vector[0]
-        self.cells[-1].Q_vector[1] = self.cells[-2].Q_vector[1]
+        self.cells[-1].Q_vector[1] = -self.cells[-2].Q_vector[1]
+
+    def _cell_update(self, cell):
+        pass
 
     def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):
         unit_flow = flow / self.width
@@ -240,7 +256,7 @@ class VariableBedlume(Flume):
             
             min_z = min(self.z_profile)
             max_z = max(self.z_profile)
-            ax.set_ylim(min_z - 0.1, max_z + 0.8) 
+            ax.set_ylim(min_z - 0.1, max_z + 65) 
             ax.legend(loc='upper right')
 
             x_data = list(range(len(old_profile)))
@@ -287,5 +303,9 @@ class VariableBedlume(Flume):
 
             time += timestep
             iterations += 1
+
+            if time == 5000:
+                print("Depth Profile:", new_profile)
+                print("Velocity Profile:", self._get_velocity_profile())
 
         return self._get_depth_profile()
