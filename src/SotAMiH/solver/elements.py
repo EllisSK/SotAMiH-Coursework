@@ -43,7 +43,7 @@ class Vector2D:
 class Cell:
     def __init__(self, elevation: float) -> None:
         self.elevation: float = elevation
-        self.Q_vector: Vector2D = Vector2D(65, 0)
+        self.Q_vector: Vector2D = Vector2D(0, 0)
 
 class Interface:
     def __init__(self) -> None:

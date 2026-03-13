@@ -9,8 +9,8 @@ import csv
 from typing import Callable
 from pathlib import Path
 
-class Flume:
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, time_recorders: list[float | int] | None = None, max_time: int | float = np.inf) -> None:
+class Channel:
+    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, initial_depth_func: Callable | None = None, time_recorders: list[float | int] | None = None, max_time: int | float = np.inf) -> None:
         self.n_cells = int(length / resolution) + 2
 
         self.length = length
@@ -72,12 +72,12 @@ class Flume:
                 profile.append(u)
         return profile
 
-    def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 100, convergance_definition: float = 10E-9):
+    def solve_flow(self, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 100, convergance_definition: float = 10E-9):
         raise NotImplementedError
 
-class VariableBedFlume(Flume):
-    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver, bed_function: Callable, time_recorders: list[float | int] | None = None, max_time: int | float = np.inf) -> None:
-        super().__init__(length, width, resolution, mannings_n, solver, time_recorders, max_time)
+class VariableBedChannel(Channel):
+    def __init__(self, length: float, width: float, resolution: float, mannings_n: float, solver: Solver,  bed_function: Callable, initial_depth_func: Callable | None = None, time_recorders: list[float | int] | None = None, max_time: int | float = np.inf) -> None:
+        super().__init__(length, width, resolution, mannings_n, solver, initial_depth_func, time_recorders, max_time)
 
         self.z_profile = []
 
@@ -86,21 +86,23 @@ class VariableBedFlume(Flume):
             self.z_profile.append(z)
 
         for i in range(self.n_cells):
-            z = bed_function(((i-1) * resolution) + (resolution / 2), length)
-            self.cells.append(Cell(z))
+            x = ((i-1) * resolution) + (resolution / 2)
+            z = bed_function(x, length)
+            cell = Cell(z)
+            if initial_depth_func:
+                cell.Q_vector[0] = initial_depth_func(x)
+            self.cells.append(cell)
             if i < self.n_cells-1:
                 self.interfaces.append(Interface())
 
-    def _set_boundary_conditions(self, q: float):
+    def _set_boundary_conditions(self):
         self.cells[0].Q_vector[0] = self.cells[1].Q_vector[0]
         self.cells[0].Q_vector[1] = -self.cells[1].Q_vector[1]
 
         self.cells[-1].Q_vector[0] = self.cells[-2].Q_vector[0]
         self.cells[-1].Q_vector[1] = -self.cells[-2].Q_vector[1]
 
-    def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):
-        unit_flow = flow / self.width
-        
+    def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):        
         time = 0
         max_h_change = 10E100
         old_profile = self._get_depth_profile()
@@ -113,8 +115,7 @@ class VariableBedFlume(Flume):
             line_water, = ax.plot([], [], 'b-', linewidth=2, label='Water Surface')
 
             ax.set_xlabel('Cell Index')
-            ax.set_ylabel('Depth Profile (m)')
-            ax.set_title(f'Empty Flume Flow. Set Flow: {flow*1000} l/s')
+            ax.set_ylabel('Height Above Datum (m)')
             time_text = ax.text(0.05, 0.95, '', transform=ax.transAxes, fontsize=12, verticalalignment='top')
             ax.set_ylim(0, 0.8)
             
@@ -145,7 +146,7 @@ class VariableBedFlume(Flume):
             else:
                 record_step = False
             
-            self._set_boundary_conditions(unit_flow)
+            self._set_boundary_conditions()
 
             for i in range(len(self.interfaces)):
                 interface = self.interfaces[i]
@@ -201,7 +202,7 @@ class VariableBedFlume(Flume):
             with open(path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 
-                writer.writerow(['# Flume Configuration'])
+                writer.writerow(['# Channel Configuration'])
                 writer.writerow([
                     f'# Length: {self.length}', 
                     f'Width: {self.width}', 
