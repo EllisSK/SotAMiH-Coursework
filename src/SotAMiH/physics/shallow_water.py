@@ -20,4 +20,4 @@ class ShallowWater1D(Physics):
     
     def dynamic_timestep(self, h, q):
         max_speed = self.max_wave_speed(h, q)
-        return self.dx / max_speed
+        return np.nextafter(self.dx / max_speed, -np.inf)
