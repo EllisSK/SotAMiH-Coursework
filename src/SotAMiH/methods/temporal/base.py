@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class SpatialReconstruction(ABC):
+class TemporalIntegrator(ABC):
     @abstractmethod
     def reconstruct(self, state, mesh):
         pass
