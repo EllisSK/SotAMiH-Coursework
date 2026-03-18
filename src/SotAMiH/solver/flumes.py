@@ -102,7 +102,7 @@ class VariableBedChannel(Channel):
         self.cells[-1].Q_vector[0] = self.cells[-2].Q_vector[0]
         self.cells[-1].Q_vector[1] = -self.cells[-2].Q_vector[1]
 
-    def solve_flow(self, flow: float, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):        
+    def solve_flow(self, live_view: bool = False, max_iterations: int = 1000000, min_iterations: int = 1000, convergance_definition: float = 10E-9):        
         time = 0
         max_h_change = 10E100
         old_profile = self._get_depth_profile()
@@ -121,7 +121,8 @@ class VariableBedChannel(Channel):
             
             min_z = min(self.z_profile)
             max_z = max(self.z_profile)
-            ax.set_ylim(min_z - 0.1, max_z + 65) 
+
+            ax.set_ylim(min_z - 0.1, max_z+20) 
             ax.legend(loc='upper right')
 
             x_data = list(range(len(old_profile)))
@@ -130,6 +131,8 @@ class VariableBedChannel(Channel):
 
         if self.time_recorders:
             times_to_capture = self.time_recorders.copy()
+        else:
+            times_to_capture = None
         record_step = False
 
         iterations = 0

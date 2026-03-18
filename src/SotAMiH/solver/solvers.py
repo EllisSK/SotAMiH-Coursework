@@ -31,7 +31,7 @@ class HLLSolver(Solver):
 
     def _calculate_signal_velocities(self, l_cell: Cell, r_cell: Cell) -> tuple[float, float]:
         g = 9.81
-        dry_tolerance = 1e-6
+        dry_tolerance = 0
 
         h_L = l_cell.Q_vector[0]
         h_R = r_cell.Q_vector[0]
@@ -39,8 +39,15 @@ class HLLSolver(Solver):
         u_L = l_cell.Q_vector[1] / h_L if h_L > dry_tolerance else 0.0
         u_R = r_cell.Q_vector[1] / h_R if h_R > dry_tolerance else 0.0
 
-        s_L = min((u_L - ((g * h_L) ** 0.5)), (u_R - ((g * h_R) ** 0.5)))
-        s_R = max((u_L + ((g * h_L) ** 0.5)), (u_R + ((g * h_R) ** 0.5)))
+        if h_L == 0:
+            s_L = u_R - (2 * ((g * h_R) ** 0.5))
+        else:
+            s_L = min((u_L - ((g * h_L) ** 0.5)), (u_R - ((g * h_R) ** 0.5)))
+
+        if h_R == 0:
+            s_R = u_L - (2 * ((g * h_L) ** 0.5))
+        else:
+            s_R = max((u_L + ((g * h_L) ** 0.5)), (u_R + ((g * h_R) ** 0.5)))
 
         return s_L, s_R
 
