@@ -1,11 +1,13 @@
 import numpy as np
 
 from.base import Physics
+from state import State1DSWE
 
 class ShallowWater1D(Physics):
     def __init__(self, dx):
         self.g = 9.81
         self.dx = dx
+        self.state = State1DSWE()
 
     def flux(self, h, q):
         u = np.divide(q, h, where=h > 0)
