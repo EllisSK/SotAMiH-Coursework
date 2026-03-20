@@ -1,4 +1,6 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 class Physics(ABC):
-    pass
+    @abstractmethod
+    def dynamic_timestep(self, Q_array) -> float:
+        pass

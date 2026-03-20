@@ -1,15 +1,21 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
+from typing import Callable
 from .boundaries import BoundaryCondition
 
 class Mesh(ABC):
+    def __init__(self) -> None:
+        self.Q_array : np.ndarray
+        self.F_array : np.ndarray
+        self.zb : np.ndarray
+
     @abstractmethod
     def apply_boundary_conditions(self, boundary_conditions: dict[str, BoundaryCondition]):
         pass
 
 class Mesh1D(Mesh):
-    def __init__(self, length: float, resolution: float) -> None:
+    def __init__(self, length: float, resolution: float, bed_function: Callable | None = None) -> None:
         super().__init__()
         self.length = length
         self.dx = resolution
@@ -18,6 +24,16 @@ class Mesh1D(Mesh):
         #Create 2D array that is as long as the domain + 2 ghost cells
         self.Q_array = np.zeros((self.N+2, 2))
         self.F_array = np.zeros((self.N+2, 2))
+
+        #Create bed elevations from bed function
+        if bed_function:
+            x_vals = np.linspace(self.dx/2, self.length - (self.dx/2), self.N)
+            #Add elevations for ghost cells equal to the elevation of inner boundary cells
+            x_vals = np.concatenate(([self.dx/2], x_vals, [self.length - (self.dx/2)]))
+            self.zb = bed_function(x_vals)
+        else:
+            #If no bed function, make all cells zb = 0
+            self.zb = np.zeros((self.N+2, 1))
 
     def apply_boundary_conditions(self, boundary_conditions: dict[str, BoundaryCondition]):
         lb = boundary_conditions["left_boundary"]
