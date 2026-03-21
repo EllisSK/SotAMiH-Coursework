@@ -8,7 +8,7 @@ from src.SotAMiH.physics.shallow_water import ShallowWater1D
 from src.SotAMiH.methods.spatial.MUSCL import MUSCL1D
 from src.SotAMiH.methods.temporal.range_kutta import RK2
 from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
-from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary
+from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary
 
 def test_case_1():
     def bed_fn(x):
@@ -77,13 +77,34 @@ def test_case_2():
     sim.run(7552.13)
 
 def test_case_3():
-    pass
+    def bed_fn(x):
+        return np.zeros_like(x)
+    
+    def initial_cond(x):
+        Q = np.zeros((len(x), 2), dtype=float)
+        Q[:, 0] = np.where(x < 25, 1.0, 0.1)
+        return Q
+    
+    mesh = Mesh1D(50, 0.25, initial_cond, bed_fn)
+    physics = ShallowWater1D(mesh.dx)
+    spatial = MUSCL1D()
+    temporal = RK2()
+    riemann = HLLSolver()
+
+    bcs = {
+        "left_boundary" : TransmissiveBoundary(),
+        "right_boundary" : TransmissiveBoundary()
+    }
+    
+    sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
+
+    sim.run(5)
 
 def test_case_4():
     pass
 
 def main():
-    test_case_2()
+    test_case_3()
 
 
 if __name__ == "__main__":

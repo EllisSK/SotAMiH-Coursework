@@ -31,7 +31,10 @@ class ShallowWater1D(Physics):
         dzb_dx = np.gradient(zb, self.dx)
         bed_slope = -self.g * eta * dzb_dx
         
-        friction = self.g * (mannings_n**2) * q * np.abs(q) / (h**(7/3))
+        if mannings_n != 0:
+            friction = self.g * (mannings_n**2) * q * np.abs(q) / (h**(7/3))
+        else:
+            friction = np.zeros_like(bed_slope)
         
         S_array[:, 1] = bed_slope - friction
         
