@@ -1,6 +1,7 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
+from typing import Callable
 
 class BoundaryCondition:
     @abstractmethod
@@ -35,3 +36,34 @@ class FixedDepthBoundary(TransmissiveBoundary):
         #Copy q and set a fixed depth
         ghost_slice[:] = interior_slice[:]
         ghost_slice[..., 0] = self.target_h
+
+class VariableBoundaryCondition(BoundaryCondition):
+    @abstractmethod
+    def apply(self, interior_slice: np.ndarray, ghost_slice: np.ndarray, t: float):
+        pass       
+
+class VariableFlowBoundary(VariableBoundaryCondition):
+    def __init__(self, q_t: Callable):
+        self.q_t = q_t
+
+    def apply(self, interior_slice: np.ndarray, ghost_slice: np.ndarray, t: float, normal_idx: int = 1):
+        ghost_slice[:] = interior_slice[:]
+        ghost_slice[..., normal_idx] = self.q_t(t)
+
+class VariableDepthBoundary(VariableBoundaryCondition):
+    def __init__(self, h_t: Callable):
+        self.h_t = h_t
+
+    def apply(self, interior_slice: np.ndarray, ghost_slice: np.ndarray, t: float):
+        ghost_slice[:] = interior_slice[:]
+        ghost_slice[..., 0] = self.h_t(t)
+
+class VariableConservedBoundary(VariableBoundaryCondition):
+    def __init__(self, h_t: Callable, q_t: Callable):
+        self.h_t = h_t
+        self.q_t = q_t
+
+    def apply(self, interior_slice: np.ndarray, ghost_slice: np.ndarray, t: float, normal_idx: int = 1):
+        ghost_slice[:] = interior_slice[:]
+        ghost_slice[..., 0] = self.h_t(t)
+        ghost_slice[..., normal_idx] = self.q_t(t)                

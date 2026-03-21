@@ -8,10 +8,10 @@ from src.SotAMiH.physics.shallow_water import ShallowWater1D
 from src.SotAMiH.methods.spatial.MUSCL import MUSCL1D
 from src.SotAMiH.methods.temporal.range_kutta import RK2
 from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
-from src.SotAMiH.core.boundaries import ReflectiveBoundary
+from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary
 
 def test_case_1():
-    def bed_fn(x,):
+    def bed_fn(x):
         return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
     
     def initial_cond(x):
@@ -34,7 +34,47 @@ def test_case_1():
 
 
 def test_case_2():
-    pass
+    def bed_fn(x):
+        return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+    
+    def initial_cond(x):      
+        return 60.5, 0
+    
+    def b_ht(t):
+        return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
+
+    def lb_qt(t):
+        def bed_fn(x):
+            return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+
+        def b_ht(t):
+            return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
+
+        return (b_ht(0) - bed_fn(0)) * (((np.pi * (0-14000)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
+
+    def rb_qt(t):
+        def bed_fn(x):
+            return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+
+        def b_ht(t):
+            return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
+
+        return (b_ht(14000) - bed_fn(14000)) * (((np.pi * (14000-14000)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
+    
+    mesh = Mesh1D(14000, 280, initial_cond, bed_fn)
+    physics = ShallowWater1D(mesh.dx)
+    spatial = MUSCL1D()
+    temporal = RK2()
+    riemann = HLLSolver()
+
+    bcs = {
+        "left_boundary" : VariableConservedBoundary(b_ht, lb_qt),
+        "right_boundary" : VariableConservedBoundary(b_ht, rb_qt)
+    }
+    
+    sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
+
+    sim.run(7552.13)
 
 def test_case_3():
     pass
@@ -43,7 +83,7 @@ def test_case_4():
     pass
 
 def main():
-    test_case_3()
+    test_case_2()
 
 
 if __name__ == "__main__":

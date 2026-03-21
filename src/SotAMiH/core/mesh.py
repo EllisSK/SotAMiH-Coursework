@@ -3,7 +3,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Callable
-from .boundaries import BoundaryCondition
+from .boundaries import BoundaryCondition, VariableBoundaryCondition
 
 class Mesh(ABC):
     def __init__(self) -> None:
@@ -12,6 +12,7 @@ class Mesh(ABC):
         self.zb : np.ndarray
         self.zb_interface : np.ndarray
         self.mannings_n : float = 0.0
+        self.t : float = 0.0
 
     @abstractmethod
     def apply_boundary_conditions(self, boundary_conditions: Mapping[str, BoundaryCondition]):
@@ -42,16 +43,30 @@ class Mesh1D(Mesh):
             self.zb = np.zeros((self.N+2, 1))
             self.zb_interface = np.zeros((self.N+1, 1))
 
-    def apply_boundary_conditions(self, boundary_conditions: Mapping[str, BoundaryCondition]):
+    def apply_boundary_conditions(self, boundary_conditions: Mapping[str, BoundaryCondition] | Mapping[str, VariableBoundaryCondition]):
         lb = boundary_conditions["left_boundary"]
         rb = boundary_conditions["right_boundary"]
 
-        lb.apply(
-            interior_slice=self.Q_array[1], 
-            ghost_slice=self.Q_array[0], 
-        )
+        if isinstance(lb, VariableBoundaryCondition):
+            lb.apply(
+                interior_slice=self.Q_array[1], 
+                ghost_slice=self.Q_array[0],
+                t=self.t
+            )
+        elif isinstance(lb, BoundaryCondition):
+            lb.apply(
+                interior_slice=self.Q_array[1], 
+                ghost_slice=self.Q_array[0], 
+            )
 
-        rb.apply(
-            interior_slice=self.Q_array[-2], 
-            ghost_slice=self.Q_array[-1], 
-        )
+        if isinstance(rb, VariableBoundaryCondition):
+            rb.apply(
+                interior_slice=self.Q_array[-2], 
+                ghost_slice=self.Q_array[-1],
+                t=self.t
+            )
+        elif isinstance(rb, BoundaryCondition):
+            rb.apply(
+                interior_slice=self.Q_array[-2], 
+                ghost_slice=self.Q_array[-1], 
+            )

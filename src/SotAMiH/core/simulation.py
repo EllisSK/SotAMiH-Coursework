@@ -56,9 +56,10 @@ class Simulation:
             else:
                 record_time = False
 
-            self.temporal.integrate(self.mesh, self.physics, self.spatial, self.riemann, self.bcs, dt)
-
             self.t += dt
+            self.mesh.t = self.t
+
+            self.temporal.integrate(self.mesh, self.physics, self.spatial, self.riemann, self.bcs, dt)
 
             if record_time:
                 pass
