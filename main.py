@@ -8,7 +8,7 @@ from src.SotAMiH.physics.shallow_water import ShallowWater1D
 from src.SotAMiH.methods.spatial.MUSCL import MUSCL1D
 from src.SotAMiH.methods.temporal.range_kutta import RK2
 from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
-from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary
+from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary, VariableDepthBoundary
 
 def test_case_1():
     def bed_fn(x):
@@ -101,10 +101,34 @@ def test_case_3():
     sim.run(5)
 
 def test_case_4():
-    pass
+    def bed_fn(x):
+        zb = np.zeros_like(x)
+        zb = np.where(abs(x-750) < 187.5, 8.0, 0.0)
+        return zb
+    
+    def b_ht(t):
+        return 20 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
+    
+    def initial_cond(x):      
+        return 16, 0
+    
+    mesh = Mesh1D(1500, 7.5, initial_cond, bed_fn)
+    physics = ShallowWater1D(mesh.dx)
+    spatial = MUSCL1D()
+    temporal = RK2()
+    riemann = HLLSolver()
+
+    bcs = {
+        "left_boundary" : VariableDepthBoundary(b_ht),
+        "right_boundary" : ReflectiveBoundary()
+    }
+    
+    sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
+
+    sim.run(32400, record_times=[10800, 32400])
 
 def main():
-    test_case_3()
+    test_case_4()
 
 
 if __name__ == "__main__":

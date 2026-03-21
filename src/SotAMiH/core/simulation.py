@@ -53,6 +53,8 @@ class Simulation:
                     dt = self.ttr[0] - self.t
                     record_time = True
                     self.ttr.pop(0)
+                else:
+                    record_time = False
             else:
                 record_time = False
 
@@ -62,6 +64,4 @@ class Simulation:
             self.temporal.integrate(self.mesh, self.physics, self.spatial, self.riemann, self.bcs, dt)
 
             if record_time:
-                pass
-
-            print(self.mesh.Q_array)
+                print(self.mesh.Q_array)
