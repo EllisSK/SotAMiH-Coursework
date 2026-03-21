@@ -11,13 +11,18 @@ from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
 from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary, VariableDepthBoundary
 
 def test_case_1():
+    DOMAIN_LENGTH = 14000
+    N_CELLS = 50
+    RESOLUTION = DOMAIN_LENGTH / N_CELLS
+    T_MAX = 5000
+
     def bed_fn(x):
-        return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+        return (10) + (40 * x / DOMAIN_LENGTH) + (10 * np.sin(np.pi * ((4 * x / DOMAIN_LENGTH) - (1/2))))
     
     def initial_cond(x):
         return 65, 0
     
-    mesh = Mesh1D(14000, 280, initial_cond, bed_fn)
+    mesh = Mesh1D(DOMAIN_LENGTH, RESOLUTION, initial_cond, bed_fn)
     physics = ShallowWater1D(mesh.dx)
     spatial = MUSCL1D()
     temporal = RK2()
@@ -30,12 +35,16 @@ def test_case_1():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    sim.run(5000)
-
+    sim.run(end_time=T_MAX)
 
 def test_case_2():
+    DOMAIN_LENGTH = 14000
+    N_CELLS = 50
+    RESOLUTION = DOMAIN_LENGTH / N_CELLS
+    T_MAX = 7552.13
+
     def bed_fn(x):
-        return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+        return (10) + (40 * x / DOMAIN_LENGTH) + (10 * np.sin(np.pi * ((4 * x / DOMAIN_LENGTH) - (1/2))))
     
     def initial_cond(x):      
         return 60.5, 0
@@ -45,23 +54,23 @@ def test_case_2():
 
     def lb_qt(t):
         def bed_fn(x):
-            return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+            return (10) + (40 * x / DOMAIN_LENGTH) + (10 * np.sin(np.pi * ((4 * x / DOMAIN_LENGTH) - (1/2))))
 
         def b_ht(t):
             return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
 
-        return (b_ht(0) - bed_fn(0)) * (((np.pi * (0-14000)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
+        return (b_ht(0) - bed_fn(0)) * (((np.pi * (0-DOMAIN_LENGTH)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
 
     def rb_qt(t):
         def bed_fn(x):
-            return (10) + (40 * x / 14000) + (10 * np.sin(np.pi * ((4 * x / 14000) - (1/2))))
+            return (10) + (40 * x / DOMAIN_LENGTH) + (10 * np.sin(np.pi * ((4 * x / DOMAIN_LENGTH) - (1/2))))
 
         def b_ht(t):
             return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
 
-        return (b_ht(14000) - bed_fn(14000)) * (((np.pi * (14000-14000)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
+        return (b_ht(DOMAIN_LENGTH) - bed_fn(DOMAIN_LENGTH)) * (((np.pi * (DOMAIN_LENGTH-DOMAIN_LENGTH)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
     
-    mesh = Mesh1D(14000, 280, initial_cond, bed_fn)
+    mesh = Mesh1D(DOMAIN_LENGTH, RESOLUTION, initial_cond, bed_fn)
     physics = ShallowWater1D(mesh.dx)
     spatial = MUSCL1D()
     temporal = RK2()
@@ -74,9 +83,14 @@ def test_case_2():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    sim.run(7552.13)
+    sim.run(end_time=T_MAX)
 
 def test_case_3():
+    DOMAIN_LENGTH = 50
+    N_CELLS = 200
+    RESOLUTION = DOMAIN_LENGTH / N_CELLS
+    T_MAX = 5
+
     def bed_fn(x):
         return np.zeros_like(x)
     
@@ -85,7 +99,7 @@ def test_case_3():
         Q[:, 0] = np.where(x < 25, 1.0, 0.1)
         return Q
     
-    mesh = Mesh1D(50, 0.25, initial_cond, bed_fn)
+    mesh = Mesh1D(DOMAIN_LENGTH, RESOLUTION, initial_cond, bed_fn)
     physics = ShallowWater1D(mesh.dx)
     spatial = MUSCL1D()
     temporal = RK2()
@@ -98,9 +112,15 @@ def test_case_3():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    sim.run(5)
+    sim.run(end_time=T_MAX)
 
 def test_case_4():
+    DOMAIN_LENGTH = 14000
+    N_CELLS = 50
+    RESOLUTION = DOMAIN_LENGTH / N_CELLS
+    T_MAX = 32400
+    TIMES_TO_RECORD = [10800, 32400]
+
     def bed_fn(x):
         zb = np.zeros_like(x)
         zb = np.where(abs(x-750) < 187.5, 8.0, 0.0)
@@ -125,9 +145,19 @@ def test_case_4():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    sim.run(32400, record_times=[10800, 32400])
+    sim.run(end_time=T_MAX, record_times=TIMES_TO_RECORD)
 
 def main():
+    print("Test Case 1 Results:")
+    test_case_1()
+
+    print("Test Case 2 Results:")
+    test_case_2()
+
+    print("Test Case 3 Results:")
+    test_case_3()
+
+    print("Test Case 4 Results:")
     test_case_4()
 
 

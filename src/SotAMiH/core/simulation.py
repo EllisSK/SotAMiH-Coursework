@@ -1,6 +1,6 @@
 import numpy as np
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from .mesh import Mesh
 from.boundaries import BoundaryCondition
@@ -19,7 +19,7 @@ class Simulation:
         self.riemann = riemann
         self.bcs = bcs
 
-    def run(self, end_time: int | float | None = None, convergance_threshold: int | float | None = None, record_times: list[int | float] | None = None):
+    def run(self, end_time: int | float | None = None, convergance_threshold: int | float | None = None, record_times: Sequence[int | float] | None = None):
         if end_time and convergance_threshold:
             raise ValueError("Please provide only 1 end condition.")
         elif not end_time and not convergance_threshold:
@@ -38,7 +38,7 @@ class Simulation:
 
         self.ttr = None
         if record_times:
-            self.ttr = record_times.copy()
+            self.ttr = list(record_times)
 
         self.mesh.apply_boundary_conditions(self.bcs)
 
