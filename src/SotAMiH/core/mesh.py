@@ -1,6 +1,7 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Callable
 from .boundaries import BoundaryCondition
 
@@ -9,13 +10,15 @@ class Mesh(ABC):
         self.Q_array : np.ndarray
         self.F_array : np.ndarray
         self.zb : np.ndarray
+        self.zb_interface : np.ndarray
+        self.mannings_n : float = 0.0
 
     @abstractmethod
-    def apply_boundary_conditions(self, boundary_conditions: dict[str, BoundaryCondition]):
+    def apply_boundary_conditions(self, boundary_conditions: Mapping[str, BoundaryCondition]):
         pass
 
 class Mesh1D(Mesh):
-    def __init__(self, length: float, resolution: float, bed_function: Callable | None = None) -> None:
+    def __init__(self, length: float, resolution: float, initial_conditions: Callable, bed_function: Callable | None = None) -> None:
         super().__init__()
         self.length = length
         self.dx = resolution
@@ -25,17 +28,21 @@ class Mesh1D(Mesh):
         self.Q_array = np.zeros((self.N+2, 2))
         self.F_array = np.zeros((self.N+2, 2))
 
+        x_vals = np.linspace(self.dx/2, self.length - (self.dx/2), self.N)
+        self.Q_array[1:-1] = initial_conditions(x_vals)
+
         #Create bed elevations from bed function
         if bed_function:
-            x_vals = np.linspace(self.dx/2, self.length - (self.dx/2), self.N)
             #Add elevations for ghost cells equal to the elevation of inner boundary cells
             x_vals = np.concatenate(([self.dx/2], x_vals, [self.length - (self.dx/2)]))
             self.zb = bed_function(x_vals)
+            self.zb_interface = 0.5 * (self.zb[:-1] + self.zb[1:])
         else:
             #If no bed function, make all cells zb = 0
             self.zb = np.zeros((self.N+2, 1))
+            self.zb_interface = np.zeros((self.N+1, 1))
 
-    def apply_boundary_conditions(self, boundary_conditions: dict[str, BoundaryCondition]):
+    def apply_boundary_conditions(self, boundary_conditions: Mapping[str, BoundaryCondition]):
         lb = boundary_conditions["left_boundary"]
         rb = boundary_conditions["right_boundary"]
 

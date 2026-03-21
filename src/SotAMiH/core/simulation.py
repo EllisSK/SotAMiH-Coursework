@@ -1,15 +1,17 @@
 import numpy as np
 
+from collections.abc import Mapping
+
 from .mesh import Mesh
 from.boundaries import BoundaryCondition
 
-from SotAMiH.methods.spatial import SpatialReconstruction
-from SotAMiH.methods.temporal import TemporalIntegrator
-from SotAMiH.methods.riemann_solvers import RiemannSolver
-from SotAMiH.physics import Physics
+from src.SotAMiH.methods.spatial import SpatialReconstruction
+from src.SotAMiH.methods.temporal import TemporalIntegrator
+from src.SotAMiH.methods.riemann_solvers import RiemannSolver
+from src.SotAMiH.physics import Physics
 
 class Simulation:
-    def __init__(self, mesh: Mesh, physics: Physics, spatial: SpatialReconstruction, temporal: TemporalIntegrator, riemann: RiemannSolver, bcs: dict[str, BoundaryCondition]):
+    def __init__(self, mesh: Mesh, physics: Physics, spatial: SpatialReconstruction, temporal: TemporalIntegrator, riemann: RiemannSolver, bcs: Mapping[str, BoundaryCondition]):
         self.mesh = mesh
         self.physics = physics
         self.spatial = spatial
@@ -34,27 +36,31 @@ class Simulation:
         if not convergance_threshold:
             convergance_threshold = np.inf
 
+        self.ttr = None
         if record_times:
             self.ttr = record_times.copy()
 
+        self.mesh.apply_boundary_conditions(self.bcs)
+
         while (self.t < end_time) and (self.max_change < convergance_threshold):
-            dt = self.physics.dynamic_timestep(self.mesh.Q_array)
+            dt = self.physics.dynamic_timestep(self.mesh.Q_array, self.mesh.zb)
 
             if (self.t + dt) > end_time:
                 dt = end_time - self.t
                 record_time = True
-            elif (self.t + dt) > self.ttr[0]:
-                dt = self.ttr[0] - self.t
-                record_time = True
-                self.ttr.pop(0)
+            elif self.ttr:
+                if (self.t + dt) > self.ttr[0]:
+                    dt = self.ttr[0] - self.t
+                    record_time = True
+                    self.ttr.pop(0)
             else:
                 record_time = False
 
-            self.mesh.apply_boundary_conditions(self.bcs)
-
-            self.temporal.integrate(self.mesh, self.spatial, dt)
+            self.temporal.integrate(self.mesh, self.physics, self.spatial, self.riemann, self.bcs, dt)
 
             self.t += dt
 
             if record_time:
                 pass
+
+            print(self.mesh.Q_array)
