@@ -10,6 +10,7 @@ from src.SotAMiH.methods.temporal.range_kutta import RK2
 from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
 from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary, VariableDepthBoundary
 from src.SotAMiH.utils.plot import Animation1D
+from src.SotAMiH.utils.io import write_1D_simulation_results
 
 def test_case_1():
     DOMAIN_LENGTH = 14000
@@ -37,6 +38,9 @@ def test_case_1():
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
     sim.run(end_time=T_MAX)
+
+    output_path = Path("./exports/testcase1.csv")
+    write_1D_simulation_results(sim, output_path, "Test Case 1")
 
 def test_case_2():
     DOMAIN_LENGTH = 14000
@@ -151,17 +155,17 @@ def test_case_4():
     sim.run(end_time=T_MAX, record_times=TIMES_TO_RECORD)
 
 def main():
-    print("Test Case 1 Results:")
     test_case_1()
+    print("Test Case 1 Completed.")
 
-    print("Test Case 2 Results:")
     test_case_2()
+    print("Test Case 2 Completed.")
 
-    print("Test Case 3 Results:")
     test_case_3()
+    print("Test Case 3 Completed.")
 
-    print("Test Case 4 Results:")
     test_case_4()
+    print("Test Case 4 Completed.")
 
 
 if __name__ == "__main__":

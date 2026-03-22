@@ -49,7 +49,7 @@ class Animation1D:
         animate = animation.FuncAnimation(
             fig,
             update_frame,
-            frames=self.sim.run(self.end, self.conv, self.rt),
+            frames=self.sim.run_generator(self.end, self.conv, self.rt),
             repeat=False,
             cache_frame_data=False
         )
