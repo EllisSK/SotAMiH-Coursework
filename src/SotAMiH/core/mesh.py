@@ -13,6 +13,7 @@ class Mesh(ABC):
         self.zb_interface : np.ndarray
         self.mannings_n : float = 0.0
         self.t : float = 0.0
+        self.x_vals : np.ndarray
 
     @abstractmethod
     def apply_boundary_conditions(self, boundary_conditions: Mapping[str, BoundaryCondition]):
@@ -29,13 +30,13 @@ class Mesh1D(Mesh):
         self.Q_array = np.zeros((self.N+2, 2))
         self.F_array = np.zeros((self.N+2, 2))
 
-        x_vals = np.linspace(self.dx/2, self.length - (self.dx/2), self.N)
-        self.Q_array[1:-1] = initial_conditions(x_vals)
+        self.x_vals = np.linspace(self.dx/2, self.length - (self.dx/2), self.N)
+        self.Q_array[1:-1] = initial_conditions(self.x_vals)
 
         #Create bed elevations from bed function
         if bed_function:
             #Add elevations for ghost cells equal to the elevation of inner boundary cells
-            x_vals = np.concatenate(([self.dx/2], x_vals, [self.length - (self.dx/2)]))
+            x_vals = np.concatenate(([self.dx/2], self.x_vals, [self.length - (self.dx/2)]))
             self.zb = bed_function(x_vals)
             self.zb_interface = 0.5 * (self.zb[:-1] + self.zb[1:])
         else:

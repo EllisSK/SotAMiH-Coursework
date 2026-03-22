@@ -9,6 +9,7 @@ from src.SotAMiH.methods.spatial.MUSCL import MUSCL1D
 from src.SotAMiH.methods.temporal.range_kutta import RK2
 from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
 from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary, VariableDepthBoundary
+from src.SotAMiH.utils.plot import Animation1D
 
 def test_case_1():
     DOMAIN_LENGTH = 14000
@@ -83,7 +84,8 @@ def test_case_2():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    sim.run(end_time=T_MAX)
+    animator = Animation1D(sim, max_elevation=70, end_time=T_MAX)
+    animator.show()
 
 def test_case_3():
     DOMAIN_LENGTH = 50
@@ -112,7 +114,8 @@ def test_case_3():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    sim.run(end_time=T_MAX)
+    animator = Animation1D(sim, max_elevation=1.5, end_time=T_MAX)
+    animator.show()
 
 def test_case_4():
     DOMAIN_LENGTH = 14000

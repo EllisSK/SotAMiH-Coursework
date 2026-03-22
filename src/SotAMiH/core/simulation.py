@@ -42,6 +42,8 @@ class Simulation:
 
         self.mesh.apply_boundary_conditions(self.bcs)
 
+        yield self.t, self.mesh.Q_array
+
         while (self.t < end_time) and (self.max_change < convergance_threshold):
             dt = self.physics.dynamic_timestep(self.mesh.Q_array, self.mesh.zb)
 
@@ -65,3 +67,5 @@ class Simulation:
 
             if record_time:
                 print(self.mesh.Q_array)
+
+            yield self.t, self.mesh.Q_array
