@@ -14,7 +14,7 @@ class Animation1D:
         self.rt = record_times
         self.maxy = max_elevation
 
-        self.t: int | float
+        self.t: int | float = 0
 
         if not isinstance(simulation.mesh, Mesh1D):
             raise TypeError("Please provide a simulation with a 1D Mesh")
@@ -40,11 +40,7 @@ class Animation1D:
             line_eta.set_ydata(Q_array[1:-1, 0])
             title.set_text(f"Time: {t:.3f}s")
 
-            if self.t == self.end:
-                plt.close()
-                return
-            else:
-                return line_eta, title
+            return line_eta, title
         
         animate = animation.FuncAnimation(
             fig,
@@ -54,4 +50,13 @@ class Animation1D:
             cache_frame_data=False
         )
 
-        plt.show()
+        plt.show(block=False)
+
+        while plt.fignum_exists(fig.number):
+            plt.pause(0.001)
+            if hasattr(self, 't') and self.t == self.end:
+                fig.canvas.draw_idle()
+                fig.canvas.start_event_loop(0.001)
+                break
+
+        plt.close(fig)

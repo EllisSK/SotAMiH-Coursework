@@ -88,8 +88,10 @@ def test_case_2():
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
-    animator = Animation1D(sim, max_elevation=70, end_time=T_MAX)
-    animator.show()
+    sim.run(end_time=T_MAX)
+
+    output_path = Path("./exports/testcase2.csv")
+    write_1D_simulation_results(sim, output_path, "Test Case 2")
 
 def test_case_3():
     DOMAIN_LENGTH = 50
@@ -120,6 +122,11 @@ def test_case_3():
 
     animator = Animation1D(sim, max_elevation=1.5, end_time=T_MAX)
     animator.show()
+
+    sim.run(end_time=T_MAX)
+
+    output_path = Path("./exports/testcase3.csv")
+    write_1D_simulation_results(sim, output_path, "Test Case 3")
 
 def test_case_4():
     DOMAIN_LENGTH = 14000
@@ -153,6 +160,9 @@ def test_case_4():
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
 
     sim.run(end_time=T_MAX, record_times=TIMES_TO_RECORD)
+
+    output_path = Path("./exports/testcase4.csv")
+    write_1D_simulation_results(sim, output_path, "Test Case 4")
 
 def main():
     test_case_1()
