@@ -7,7 +7,7 @@ from src.SotAMiH.core.mesh import Mesh1D
 from src.SotAMiH.physics.shallow_water import ShallowWater1D
 from src.SotAMiH.methods.spatial.MUSCL import MUSCL1D
 from src.SotAMiH.methods.temporal.range_kutta import RK2
-from src.SotAMiH.methods.riemann_solvers.hll import HLLSolver
+from src.SotAMiH.methods.riemann_solvers import HLLSolver, OsherSolomonSolver
 from src.SotAMiH.core.boundaries import ReflectiveBoundary, VariableConservedBoundary, TransmissiveBoundary, VariableDepthBoundary
 from src.SotAMiH.utils.plot import Animation1D
 from src.SotAMiH.utils.io import write_1D_simulation_results
@@ -28,7 +28,7 @@ def test_case_1():
     physics = ShallowWater1D(mesh.dx)
     spatial = MUSCL1D()
     temporal = RK2()
-    riemann = HLLSolver()
+    riemann = OsherSolomonSolver()
 
     bcs = {
         "left_boundary" : ReflectiveBoundary(),
@@ -79,7 +79,7 @@ def test_case_2():
     physics = ShallowWater1D(mesh.dx)
     spatial = MUSCL1D()
     temporal = RK2()
-    riemann = HLLSolver()
+    riemann = OsherSolomonSolver()
 
     bcs = {
         "left_boundary" : VariableConservedBoundary(b_ht, lb_qt),
@@ -93,7 +93,7 @@ def test_case_2():
     output_path = Path("./exports/testcase2.csv")
     write_1D_simulation_results(sim, output_path, "Test Case 2")
 
-def test_case_3():
+def test_case_3a():
     DOMAIN_LENGTH = 50
     N_CELLS = 200
     RESOLUTION = DOMAIN_LENGTH / N_CELLS
@@ -125,8 +125,43 @@ def test_case_3():
 
     sim.run(end_time=T_MAX)
 
-    output_path = Path("./exports/testcase3.csv")
-    write_1D_simulation_results(sim, output_path, "Test Case 3")
+    output_path = Path("./exports/testcase3a.csv")
+    write_1D_simulation_results(sim, output_path, "Test Case 3a")
+
+def test_case_3b():
+    DOMAIN_LENGTH = 50
+    N_CELLS = 200
+    RESOLUTION = DOMAIN_LENGTH / N_CELLS
+    T_MAX = 5
+
+    def bed_fn(x):
+        return np.zeros_like(x)
+    
+    def initial_cond(x):
+        Q = np.zeros((len(x), 2), dtype=float)
+        Q[:, 0] = np.where(x < 25, 1.0, 0.1)
+        return Q
+    
+    mesh = Mesh1D(DOMAIN_LENGTH, RESOLUTION, initial_cond, bed_fn)
+    physics = ShallowWater1D(mesh.dx)
+    spatial = MUSCL1D()
+    temporal = RK2()
+    riemann = OsherSolomonSolver()
+
+    bcs = {
+        "left_boundary" : TransmissiveBoundary(),
+        "right_boundary" : TransmissiveBoundary()
+    }
+    
+    sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
+
+    animator = Animation1D(sim, max_elevation=1.5, end_time=T_MAX)
+    animator.show()
+
+    sim.run(end_time=T_MAX)
+
+    output_path = Path("./exports/testcase3b.csv")
+    write_1D_simulation_results(sim, output_path, "Test Case 3b")
 
 def test_case_4():
     DOMAIN_LENGTH = 14000
@@ -150,7 +185,7 @@ def test_case_4():
     physics = ShallowWater1D(mesh.dx)
     spatial = MUSCL1D()
     temporal = RK2()
-    riemann = HLLSolver()
+    riemann = OsherSolomonSolver()
 
     bcs = {
         "left_boundary" : VariableDepthBoundary(b_ht),
@@ -171,8 +206,11 @@ def main():
     test_case_2()
     print("Test Case 2 Completed.")
 
-    test_case_3()
-    print("Test Case 3 Completed.")
+    test_case_3a()
+    print("Test Case 3a Completed.")
+
+    test_case_3b()
+    print("Test Case 3b Completed.")
 
     test_case_4()
     print("Test Case 4 Completed.")
