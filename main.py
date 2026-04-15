@@ -58,21 +58,9 @@ def test_case_2():
         return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
 
     def lb_qt(t):
-        def bed_fn(x):
-            return (10) + (40 * x / DOMAIN_LENGTH) + (10 * np.sin(np.pi * ((4 * x / DOMAIN_LENGTH) - (1/2))))
-
-        def b_ht(t):
-            return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
-
         return (b_ht(0) - bed_fn(0)) * (((np.pi * (0-DOMAIN_LENGTH)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
 
     def rb_qt(t):
-        def bed_fn(x):
-            return (10) + (40 * x / DOMAIN_LENGTH) + (10 * np.sin(np.pi * ((4 * x / DOMAIN_LENGTH) - (1/2))))
-
-        def b_ht(t):
-            return 64.5 - (4 * np.sin(np.pi * (((4 * t) / 86400) + (0.5))))
-
         return (b_ht(DOMAIN_LENGTH) - bed_fn(DOMAIN_LENGTH)) * (((np.pi * (DOMAIN_LENGTH-DOMAIN_LENGTH)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
     
     mesh = Mesh1D(DOMAIN_LENGTH, RESOLUTION, initial_cond, bed_fn)
