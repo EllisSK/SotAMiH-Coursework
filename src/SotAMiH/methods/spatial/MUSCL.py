@@ -12,6 +12,7 @@ class MUSCL1D(SpatialReconstruction):
     def reconstruct_conserved_variables(self, mesh):
         grad_U = np.zeros_like(mesh.Q_array)
         
+        #Calculate gradients with shifted arrays
         diff_bwd = (mesh.Q_array[1:-1] - mesh.Q_array[:-2]) / mesh.dx
         diff_fwd = (mesh.Q_array[2:] - mesh.Q_array[1:-1]) / mesh.dx
         

@@ -60,10 +60,13 @@ class VariableDepthBoundary(VariableBoundaryCondition):
 
 class VariableConservedBoundary(VariableBoundaryCondition):
     def __init__(self, h_t: Callable, q_t: Callable):
+        #Store passed functions within class object
         self.h_t = h_t
         self.q_t = q_t
 
     def apply(self, interior_slice: np.ndarray, ghost_slice: np.ndarray, t: float, normal_idx: int = 1):
         ghost_slice[:] = interior_slice[:]
+
+        #Apply Dirichlet boundary condition to eta and q, normal index implemented such that the method could potentially be applied to 2D problems (normal_idx = 2 in this case)
         ghost_slice[..., 0] = self.h_t(t)
         ghost_slice[..., normal_idx] = self.q_t(t)                

@@ -23,16 +23,19 @@ class OsherSolomonSolver(RiemannSolver):
             a_L = np.sqrt(g * h_L)
             a_R = np.sqrt(g * h_R)
 
+            #Left sonic points
             u_S0 = (u_L + (2.0 * a_L)) / 3.0
             a_S0 = u_S0
             h_S0 = np.power(a_S0, 2) / g
             q_S0 = h_S0 * u_S0
             
+            #Right sonic points
             u_S1 = (u_R - (2.0 * a_R)) / 3.0
             a_S1 = -u_S1
             h_S1 = np.power(a_S1, 2) / g
             q_S1 = h_S1 * u_S1
             
+            #Intermediate values
             u_star = 0.5 * (u_L + u_R) + a_L - a_R
             a_13 = a_L + (0.5 * (u_L - u_star))
             h_13 = np.power(a_13, 2) / g
@@ -42,11 +45,13 @@ class OsherSolomonSolver(RiemannSolver):
             h_23 = np.power(a_23, 2) / g
             q_23 = h_23 * u_star
             
+            #Combine eta and q vectors into intermediate state (Q) vectors
             Q_S0 = np.stack((h_S0 + zb, q_S0), axis=1)
             Q_S1 = np.stack((h_S1 + zb, q_S1), axis=1)
             Q_13 = np.stack((h_13 + zb, q_13), axis=1)
             Q_23 = np.stack((h_23 + zb, q_23), axis=1)
             
+            #Calculate fluxes
             F_0 = physics.flux(Q_L, zb)
             F_1 = physics.flux(Q_R, zb)
             F_S0 = physics.flux(Q_S0, zb)
@@ -54,6 +59,7 @@ class OsherSolomonSolver(RiemannSolver):
             F_13 = physics.flux(Q_13, zb)
             F_23 = physics.flux(Q_23, zb)
             
+            #Determine conditions for entire vectors to determine the flux at each point
             cond_c1 = u_L - a_L >= 0.0
             cond_c2 = u_L - a_L < 0.0
             
@@ -72,6 +78,7 @@ class OsherSolomonSolver(RiemannSolver):
             
             F_int = np.zeros_like(Q_L)
             
+            #Apply the conditions for the 16 possibilities
             F_int[cond_r1 & col1] = F_0[cond_r1 & col1]
             F_int[cond_r1 & col2] = F_0[cond_r1 & col2] + F_1[cond_r1 & col2] - F_S1[cond_r1 & col2]
             F_int[cond_r1 & col3] = F_S0[cond_r1 & col3]

@@ -47,6 +47,7 @@ class Simulation:
         while (self.t < end_time) and (self.max_change < convergance_threshold):
             dt = self.physics.dynamic_timestep(self.mesh.Q_array, self.mesh.zb)
 
+            #Flow control to determine correct timestep to capture desired times to record (ttr) or the final time
             if (self.t + dt) > end_time:
                 dt = end_time - self.t
                 record_time = True
@@ -75,6 +76,8 @@ class Simulation:
         self.saved_times[t] = current_Q
 
     def run_generator(self, end_time: int | float | None = None, convergance_threshold: int | float | None = None, record_times: Sequence[int | float] | None = None):
+        #Run method adapted for live animation
+        
         if end_time and convergance_threshold:
             raise ValueError("Please provide only 1 end condition.")
         elif not end_time and not convergance_threshold:
