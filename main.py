@@ -59,9 +59,6 @@ def test_case_2():
 
     def lb_qt(t):
         return (b_ht(0) - bed_fn(0)) * (((np.pi * (0-DOMAIN_LENGTH)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
-
-    def rb_qt(t):
-        return (b_ht(DOMAIN_LENGTH) - bed_fn(DOMAIN_LENGTH)) * (((np.pi * (DOMAIN_LENGTH-DOMAIN_LENGTH)) / (5400 * b_ht(t))) * np.cos(np.pi * (((4 * t) / 86400) + (0.5))))
     
     mesh = Mesh1D(DOMAIN_LENGTH, RESOLUTION, initial_cond, bed_fn)
     physics = ShallowWater1D(mesh.dx)
@@ -71,7 +68,7 @@ def test_case_2():
 
     bcs = {
         "left_boundary" : VariableConservedBoundary(b_ht, lb_qt),
-        "right_boundary" : VariableConservedBoundary(b_ht, rb_qt)
+        "right_boundary" : ReflectiveBoundary()
     }
     
     sim = Simulation(mesh, physics, spatial, temporal, riemann, bcs)
