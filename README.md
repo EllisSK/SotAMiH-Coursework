@@ -7,11 +7,12 @@ A library containing components to create schemes for solving the Shallow Water 
 This project implements an Object-Oriented structure with classes representing meshes, boundary conditions, physics, Riemann solvers, spatial reconstructors and temporal integrators. These classes are then used together within a simulation class, which has access to animation methods and other utilities to record the results of simulations.
 
 ## Example Usage
+
+The project is configured to generate results for 4 test cases. Test case 3 is configured such that an animation will display whilst the solver is running, all test cases will output results in CSV format into an `exports` directory.
+
 Detailed below are two methods of running the code in this repository. The code was developed using `uv` as the package and project manager, and I strongly recommend its use to avoid any unforeseen reproducibility issues.
 
 ### UV
-
-The project is configured to generate results for 4 test cases. Test case 3 is configured such that an animation will display whilst the solver is running, all test cases will output results in CSV format into an `exports` directory.
 
 If you do not have `uv` installed, you can find the full installation instructions in the [official Astral documentation](https://docs.astral.sh/uv/getting-started/installation/). The quickest methods to install it are:
 
